@@ -1,0 +1,167 @@
+local LightningModule = {}
+local Assets = game.ReplicatedStorage.Assets
+local SAssets = game.ServerScriptService.ServerAssets
+
+-- Function to generate random points between start and end positions
+local function generateLightningPath(startPos, endPos, numSegments)
+	local points = {}
+	local direction = (endPos - startPos).unit
+	local segmentLength = (endPos - startPos).Magnitude / numSegments
+
+	local currentPos = startPos
+	for i = 1, numSegments do
+		-- Reduced the spread by using smaller values in the offset
+		local offset = Vector3.new(math.random(-6, 6), math.random(-8, 8), math.random(-6, 6))
+		currentPos = currentPos + (direction * segmentLength) + offset
+		table.insert(points, currentPos)
+	end
+
+	table.insert(points, endPos) -- Ensure the last point is the end position
+	return points
+end
+
+local function createTitan(character)
+	task.wait(2)
+
+	local Titan = "Attack" -- Will change the path later
+	local Player = game.Players:GetPlayerFromCharacter(character)
+	
+	if Player.Name == "QuantumCuboid" then
+		Titan = "Armored"
+	end
+
+	if SAssets.Titans:FindFirstChild(Titan) and not Player.Character:FindFirstChild("Titan") then
+		
+		local Bool = Instance.new("StringValue")
+		Bool.Name = "Titan"
+		
+		local OldCFrame = Player.Character:GetPrimaryPartCFrame()
+		-- Destroy the old character
+		Player.Character:Destroy()
+
+		-- Clone the Titan model
+		local newCharacter = SAssets.Titans:FindFirstChild(Titan):Clone()
+		newCharacter.Parent = workspace
+
+		newCharacter.Name = character.Name
+
+		-- Set the player's character to the new one
+		Player.Character = newCharacter
+		Player.Character:FindFirstChild("Abil").Parent = Player.PlayerGui
+
+		-- Set the PrimaryPart and its CFrame
+		if not newCharacter.PrimaryPart then
+			newCharacter.PrimaryPart = newCharacter:FindFirstChild("HumanoidRootPart") or newCharacter:FindFirstChild("Torso")
+		end
+		newCharacter:SetPrimaryPartCFrame(OldCFrame)
+
+		-- Ensure the player controls the new character model
+		Player.Character = newCharacter
+		Bool.Parent = newCharacter
+		Player.CharacterAdded:Wait()
+	end
+end
+
+-- Function to animate the sphere
+local function animateSphere(sphere)
+	local initialSize = sphere.Size
+	local targetSize = initialSize * 1.5  -- Adjust the target size as needed
+	local duration = 0.3  -- Time in seconds for one grow-shrink cycle
+
+	spawn(function()
+		while sphere.Parent do
+			-- Grow
+			for i = 0, 1, 0.05 do
+				sphere.Size = initialSize:Lerp(targetSize, i)
+				task.wait(duration / 20)
+			end
+			-- Shrink
+			for i = 0, 1, 0.05 do
+				sphere.Size = targetSize:Lerp(initialSize, i)
+				task.wait(duration / 20)
+			end
+		end
+	end)
+end
+
+local function destroyTitan(character)
+	
+	local Player = game.Players:GetPlayerFromCharacter(character)
+	
+	Player.PlayerGui:FindFirstChild("Abil"):Destroy()
+	
+end
+
+-- Function to create the lightning effect
+function LightningModule:CreateLightning(startPos, endPos, numSegments, parent, character)
+	
+	
+	local player = game.Players:GetPlayerFromCharacter(character)
+	
+	local points = generateLightningPath(startPos, endPos, numSegments)
+
+	local lightningFolder = Instance.new("Folder")
+	lightningFolder.Name = "LightningEffect"
+	lightningFolder.Parent = parent
+
+	local previousPoint = startPos
+
+	for _, point in pairs(points) do
+		-- Create a part for each segment of the lightning bolt
+		local part = Instance.new("Part")
+		part.Size = Vector3.new(1, 2, (point - previousPoint).Magnitude)  -- Thicker and taller bolt
+		part.CFrame = CFrame.new(previousPoint, point) * CFrame.new(0, 0, -part.Size.Z / 2)
+		part.Anchored = true
+		part.CanCollide = false
+		part.BrickColor = BrickColor.new("New Yeller")
+		part.Material = Enum.Material.Neon
+		part.Transparency = 0.2  -- Slight transparency for better visual effect
+		part.Parent = lightningFolder
+
+		previousPoint = point
+	end
+
+	if not character.HumanoidRootPart:FindFirstChild("TitanShiftSound") and not player.Character:FindFirstChild("Titan") then
+		
+		local sound = Assets.Sounds.TitanShiftSound:Clone() -- Keeping this here but not playing because it's used for a check
+		sound.Parent = character.HumanoidRootPart
+		--sound:play()
+		
+		local Part = Instance.new("Part")
+		Part.CFrame = character.HumanoidRootPart.CFrame
+		Part.Transparency = 1
+		Part.CanCollide = false
+		Part.Parent = workspace
+		
+		local RealSound = Assets.Sounds.TitanShiftSound:Clone()
+		RealSound.Parent = Part
+		RealSound:Play()
+
+		game.Debris:AddItem(sound, 4)
+		game.Debris:AddItem(RealSound, RealSound.TimeLength)
+
+		spawn(function()
+			createTitan(character)
+		end)
+	end
+
+	-- Create and animate the expanding sphere
+	local sphere = Instance.new("Part")
+	sphere.Shape = Enum.PartType.Ball
+	sphere.Size = Vector3.new(40, 40, 40)
+	sphere.CFrame = CFrame.new(character.HumanoidRootPart.Position)
+	sphere.Anchored = true
+	sphere.CanCollide = false
+	sphere.BrickColor = BrickColor.new("New Yeller")
+	sphere.Material = Enum.Material.Neon
+	sphere.Transparency = 0.5  -- Slightly transparent for a glowing effect
+	sphere.Parent = lightningFolder
+	
+	Assets.Particles.LightningLight:Clone().Parent = sphere
+
+	animateSphere(sphere)
+
+	game.Debris:AddItem(lightningFolder, 0.15)  -- Reduced time to make it disappear faster
+end
+
+return LightningModule

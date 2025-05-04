@@ -1,7 +1,7 @@
 local ArmoredAbility = {}
 local Assets = game.ReplicatedStorage.Assets
 local SAssets = game.ServerScriptService.ServerAssets
-local RunService = game:GetService("RunService") -- We'll use RunService for smooth transitions
+local RunService = game:GetService("RunService") -- RunService for smooth transitions
 
 -- Function to smoothly interpolate between two values (lerp)
 local function lerp(a, b, t)
@@ -25,7 +25,7 @@ end
 
 -- Function to fade between two materials over time
 local function fadeMaterial(part, fromMaterial, toMaterial, duration)
-	-- Material changing can't be "faded" exactly, but we can delay the change to match the color fade
+	-- delay the change to match the color fade
 	task.wait(duration)
 	part.Material = toMaterial
 end

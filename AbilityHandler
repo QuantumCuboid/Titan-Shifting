@@ -1,0 +1,6 @@
+local Abil = game.ReplicatedStorage.Remotes:FindFirstChild("Abil")
+
+Abil.OnServerEvent:Connect(function(Player, Action, Titan)
+	local Module = require(game.ServerScriptService.Modules:FindFirstChild(Titan.."TitanAbilities"))	
+	Module:Action(Player.Character, Action)
+end)

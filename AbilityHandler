@@ -1,0 +1,33 @@
+local Remote = game.ReplicatedStorage.Remotes:FindFirstChild("Destroy")
+local LightningModule = require(game.ServerScriptService:WaitForChild("Modules"):WaitForChild("TitanShiftModule"))
+
+
+-- Function to spawn lightning
+Remote.OnServerEvent:Connect(function(player)
+	local root = player.character:FindFirstChild("HumanoidRootPart")
+
+	if root then
+		
+		player.Character.Humanoid.WalkSpeed = 0
+		player.Character.Humanoid.JumpPower = 0
+
+		spawn(function()
+			game.Lighting.ShiftColorCorrection.Enabled = true
+			wait(1.9)
+			game.Lighting.ShiftColorCorrection.Enabled = false
+		end)
+
+		for i = 1, 55 do  -- Spawn more lightning strikes rapidly
+			local startPosition = root.Position + Vector3.new(0, 400, 0)  -- Start 80 studs above the player
+			local endPosition = root.Position - Vector3.new(0, 3, 0)  -- End 5 studs below the player
+
+			LightningModule:CreateLightning(startPosition, endPosition, 10, workspace, player.character)  -- 10 segments for the lightning
+			wait(0.0005)
+		end
+		
+		
+		wait(.8)
+		player.Character.Humanoid.NameDisplayDistance = 0
+		player.Character.Humanoid.HealthDisplayDistance = 0
+	end
+end)

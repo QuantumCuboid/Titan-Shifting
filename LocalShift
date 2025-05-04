@@ -1,0 +1,29 @@
+-- LocalScript inside StarterPlayerScripts or StarterCharacterScripts
+
+-- Get references to services and modules
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local Remote = game.ReplicatedStorage.Remotes:FindFirstChild("Destroy")
+local Camera = workspace.CurrentCamera
+
+-- Variables
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- Bind the P key to trigger the lightning
+local UserInputService = game:GetService("UserInputService")
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not player.character:WaitForChild("HumanoidRootPart"):FindFirstChild("TitanShiftSound") then
+		if input.KeyCode == Enum.KeyCode.P and not gameProcessed and not player.Character:FindFirstChild("Titan") then
+			Remote:FireServer()
+			
+			wait(2.5)
+			-- Set the camera's subject to the new character's Humanoid
+			local newHumanoid = player.character:FindFirstChildOfClass("Humanoid")
+			if newHumanoid then
+				Camera.CameraSubject = newHumanoid
+			end
+
+		end
+	end
+end)

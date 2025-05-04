@@ -1,0 +1,84 @@
+local ArmoredAbility = {}
+local Assets = game.ReplicatedStorage.Assets
+local SAssets = game.ServerScriptService.ServerAssets
+local RunService = game:GetService("RunService") -- We'll use RunService for smooth transitions
+
+-- Function to smoothly interpolate between two values (lerp)
+local function lerp(a, b, t)
+	return a + (b - a) * t
+end
+
+-- Function to fade between two colors over time
+local function fadeColor(part, fromColor, toColor, duration)
+	local elapsed = 0
+	while elapsed < duration do
+		local dt = RunService.Heartbeat:Wait()
+		elapsed = elapsed + dt
+		local alpha = math.clamp(elapsed / duration, 0, 1) -- Calculate the interpolation factor (0 to 1)
+		part.Color = Color3.new(
+			lerp(fromColor.R, toColor.R, alpha),
+			lerp(fromColor.G, toColor.G, alpha),
+			lerp(fromColor.B, toColor.B, alpha)
+		)
+	end
+end
+
+-- Function to fade between two materials over time
+local function fadeMaterial(part, fromMaterial, toMaterial, duration)
+	-- Material changing can't be "faded" exactly, but we can delay the change to match the color fade
+	task.wait(duration)
+	part.Material = toMaterial
+end
+
+function ArmoredAbility:Action(char, action)
+	if action == "Harden" then
+		local partsToHarden = { "ffff", "ffff2", "ffff3", "ffff4", "ffff5", "fff", "fff2", "fff3", "fff4", "fff5" }
+
+		-- Normal and hardening properties
+		local normalColor = Color3.fromRGB(255, 204, 153)
+		local normalMaterial = Enum.Material.Concrete -- Normal material is Concrete
+		local hardenColor = Color3.fromRGB(116, 255, 239) -- Harden color
+		local hardenMaterial = Enum.Material.Concrete
+		
+		local Sound = Assets.Sounds.Hardening:Clone()
+		Sound.Parent = char.HumanoidRootPart
+		Sound:Play()
+		
+		game.Debris:AddItem(Sound, Sound.TimeLength)
+
+		-- Apply hardening to the parts
+		for _, partName in ipairs(partsToHarden) do
+			local part = char:FindFirstChild(partName)
+			if part and part:IsA("BasePart") then
+				-- Save original color and material
+				part:SetAttribute("OriginalColor", part.Color)
+				part:SetAttribute("OriginalMaterial", part.Material)
+
+				-- Smoothly transition to harden color and material
+				task.spawn(function()
+					fadeColor(part, part.Color, hardenColor, 1) -- 2 second fade to harden
+					fadeMaterial(part, part.Material, hardenMaterial, .8) -- 2 second delay for material change
+				end)
+			end
+		end
+
+		-- Revert back to normal after 30 seconds
+		task.delay(30, function()
+			for _, partName in ipairs(partsToHarden) do
+				local part = char:FindFirstChild(partName)
+				if part and part:IsA("BasePart") then
+					local originalColor = part:GetAttribute("OriginalColor") or normalColor
+					local originalMaterial = part:GetAttribute("OriginalMaterial") or normalMaterial
+
+					-- Smoothly transition back to normal color and material
+					task.spawn(function()
+						fadeColor(part, part.Color, originalColor, 2) -- 2 second fade back to normal
+						fadeMaterial(part, part.Material, originalMaterial, 2) -- 2 second delay for material revert
+					end)
+				end
+			end
+		end)
+	end
+end
+
+return ArmoredAbility
